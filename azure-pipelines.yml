@@ -76,7 +76,8 @@ steps:
     script: |
       cd infrastructure
       $json = terraform output -json
-      $url = $json | ConvertFrom-Json | Select-Object -ExpandProperty website_url -ExpandProperty value
+      $data = $json | ConvertFrom-Json
+      $url = $data.website_url.value
       # Extract account name from URL (e.g., https://stdev123.z13.web.core.windows.net/ -> stdev123)
       $accountName = $url.Split('.')[0].Replace('https://', '')
       Write-Host "##vso[task.setvariable variable=storageAccountName]$accountName"
