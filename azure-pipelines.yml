@@ -87,8 +87,8 @@ steps:
   displayName: 'Upload Website to Azure'
   inputs:
     azureSubscription: '$(azureServiceConnection)'
-    scriptType: 'bash'
+    scriptType: 'ps'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      echo "Uploading to Storage Account: $(storageAccountName)"
+      Write-Host "Uploading to Storage Account: $(storageAccountName)"
       az storage blob upload-batch --account-name $(storageAccountName) --source src --destination '$web' --overwrite
