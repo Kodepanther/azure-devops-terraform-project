@@ -1,0 +1,93 @@
+trigger:
+- main
+- staging
+- dev
+
+variables:
+  # --- CONFIGURATION SECTION (YOU MUST EDIT THESE) ---
+  
+  # 1. The name of the Service Connection you created in ADO Project Settings
+  # If you don't remember, go to ADO -> Project Settings -> Service Connections
+  azureServiceConnection: 'azure-terraform-connection' 
+  
+  # 2. The Resource Group name where you created the "State" storage account
+  backendResourceGroup: 'terraform-backend-rg'
+  
+  # 3. The ACTUAL name of the storage account you created in the terminal earlier (e.g. tfstate12345)
+  backendStorageAccount: 'tfstate2118'
+  
+  # 4. The container name (we named it 'tfstate' earlier)
+  backendContainer: 'tfstate'
+
+  # --- END CONFIGURATION ---
+
+  # Dynamic Environment Logic
+  ${{ if eq(variables['Build.SourceBranchName'], 'dev') }}:
+    environmentName: 'dev'
+  ${{ if eq(variables['Build.SourceBranchName'], 'staging') }}:
+    environmentName: 'staging'
+  ${{ if eq(variables['Build.SourceBranchName'], 'main') }}:
+    environmentName: 'prod'
+
+pool:
+  name: SandboxAgent
+
+steps:
+- task: TerraformInstaller@0
+  displayName: 'Install Terraform'
+  inputs:
+    terraformVersion: 'latest'
+
+- task: TerraformTaskV4@4
+  displayName: 'Terraform Init'
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/infrastructure'
+    backendServiceArm: '$(azureServiceConnection)'
+    backendAzureRmResourceGroupName: '$(backendResourceGroup)'
+    backendAzureRmStorageAccountName: '$(backendStorageAccount)'
+    backendAzureRmContainerName: '$(backendContainer)'
+    backendAzureRmKey: '$(environmentName).tfstate' # This creates a unique state file for each env
+
+- task: TerraformTaskV4@4
+  displayName: 'Terraform Plan'
+  inputs:
+    provider: 'azurerm'
+    command: 'plan'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/infrastructure'
+    commandOptions: '-var="environment=$(environmentName)" -out=tfplan'
+    environmentServiceNameAzureRM: '$(azureServiceConnection)'
+
+- task: TerraformTaskV4@4
+  displayName: 'Terraform Apply'
+  inputs:
+    provider: 'azurerm'
+    command: 'apply'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/infrastructure'
+    commandOptions: 'tfplan'
+    environmentServiceNameAzureRM: '$(azureServiceConnection)'
+
+# This script gets the Storage Account Name that Terraform just created so we can upload files to it
+- task: PowerShell@2
+  displayName: 'Get Storage Account Name'
+  inputs:
+    targetType: 'inline'
+    script: |
+      cd infrastructure
+      $json = terraform output -json
+      $url = $json | ConvertFrom-Json | Select-Object -ExpandProperty website_url -ExpandProperty value
+      # Extract account name from URL (e.g., https://stdev123.z13.web.core.windows.net/ -> stdev123)
+      $accountName = $url.Split('.')[0].Replace('https://', '')
+      Write-Host "##vso[task.setvariable variable=storageAccountName]$accountName"
+      Write-Host "Target Storage Account: $accountName"
+
+- task: AzureCLI@2
+  displayName: 'Upload Website to Azure'
+  inputs:
+    azureSubscription: '$(azureServiceConnection)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Uploading to Storage Account: $(storageAccountName)"
+      az storage blob upload-batch --account-name $(storageAccountName) --source src --destination '$web' --overwrite
