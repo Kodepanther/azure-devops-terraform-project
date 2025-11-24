@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Status Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom pulse animation for status dots */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.33); }
+            80%, 100% { opacity: 0; }
+        }
+        .pulse-dot {
+            position: relative;
+        }
+        .pulse-dot::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            display: block;
+            width: 100%; height: 100%;
+            background-color: inherit;
+            border-radius: 50%;
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 font-sans min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-slate-800 border-b border-slate-700 p-4">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-server text-blue-500 text-2xl"></i>
+                <h1 class="text-xl font-bold text-white tracking-wide">DevOps<span class="text-blue-500">Monitor</span></h1>
+            </div>
+            <div class="text-sm bg-slate-700 px-3 py-1 rounded-full border border-slate-600">
+                <span class="text-slate-400">Environment:</span> 
+                <!-- We will change this text manually in future phases to prove deployment -->
+                <span class="text-green-400 font-bold ml-1" id="env-display">DEV</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl mx-auto w-full p-6">
+        
+        <!-- Header Section -->
+        <header class="mb-10 text-center sm:text-left">
+            <h2 class="text-3xl font-bold mb-2">System Status Overview</h2>
+            <p class="text-slate-400">Real-time monitoring of application infrastructure.</p>
+        </header>
+
+        <!-- Status Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            
+            <!-- Card 1: API Status -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg hover:border-blue-500/50 transition duration-300">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-slate-700 rounded-lg">
+                        <i class="fa-solid fa-network-wired text-purple-400 text-xl"></i>
+                    </div>
+                    <div class="w-3 h-3 bg-green-500 rounded-full pulse-dot"></div>
+                </div>
+                <h3 class="text-lg font-semibold mb-1">API Gateway</h3>
+                <p class="text-sm text-slate-400 mb-4">Latency: 45ms</p>
+                <div class="w-full bg-slate-700 rounded-full h-1.5">
+                    <div class="bg-purple-500 h-1.5 rounded-full" style="width: 92%"></div>
+                </div>
+            </div>
+
+            <!-- Card 2: Database -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg hover:border-blue-500/50 transition duration-300">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-slate-700 rounded-lg">
+                        <i class="fa-solid fa-database text-blue-400 text-xl"></i>
+                    </div>
+                    <div class="w-3 h-3 bg-green-500 rounded-full pulse-dot"></div>
+                </div>
+                <h3 class="text-lg font-semibold mb-1">Database Shards</h3>
+                <p class="text-sm text-slate-400 mb-4">Connections: 124/500</p>
+                <div class="w-full bg-slate-700 rounded-full h-1.5">
+                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: 65%"></div>
+                </div>
+            </div>
+
+            <!-- Card 3: Storage -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg hover:border-blue-500/50 transition duration-300">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-slate-700 rounded-lg">
+                        <i class="fa-solid fa-hard-drive text-orange-400 text-xl"></i>
+                    </div>
+                    <div class="w-3 h-3 bg-green-500 rounded-full pulse-dot"></div>
+                </div>
+                <h3 class="text-lg font-semibold mb-1">Blob Storage</h3>
+                <p class="text-sm text-slate-400 mb-4">Capacity: 42%</p>
+                <div class="w-full bg-slate-700 rounded-full h-1.5">
+                    <div class="bg-orange-500 h-1.5 rounded-full" style="width: 42%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Diagnostic Panel -->
+        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <div class="p-4 border-b border-slate-700 bg-slate-700/50 flex justify-between items-center">
+                <span class="font-mono text-sm text-blue-300">Run Diagnostics</span>
+                <span id="version-tag" class="text-xs bg-slate-900 px-2 py-0.5 rounded text-slate-500">v1.0.0</span>
+            </div>
+            <div class="p-6">
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <button onclick="runDiagnostics()" class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition shadow-lg shadow-blue-600/20 active:scale-95">
+                        <i class="fa-solid fa-play mr-2"></i> Start Scan
+                    </button>
+                    <div id="console-output" class="flex-grow w-full font-mono text-sm text-slate-400 bg-slate-900/50 p-3 rounded border border-slate-700 min-h-[50px] flex items-center">
+                        Ready to initiate system scan...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-slate-700 py-6 text-center text-slate-500 text-sm">
+        <p>&copy; 2024 DevOps Learning Path. Deployed via Terraform & Azure DevOps.</p>
+    </footer>
+
+    <!-- Logic -->
+    <script>
+        function runDiagnostics() {
+            const consoleOutput = document.getElementById('console-output');
+            const messages = [
+                "Initializing scan...",
+                "Checking connectivity...",
+                "Verifying security protocols...",
+                "Ping successful: 12ms",
+                "System Operational."
+            ];
+            
+            let i = 0;
+            consoleOutput.innerHTML = `<span class="text-blue-400"> > ${messages[0]}</span>`;
+            
+            const interval = setInterval(() => {
+                i++;
+                if (i < messages.length) {
+                    const color = i === messages.length - 1 ? 'text-green-400' : 'text-blue-400';
+                    consoleOutput.innerHTML = `<span class="${color}"> > ${messages[i]}</span>`;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                         consoleOutput.innerHTML = "Ready to initiate system scan...";
+                    }, 3000);
+                }
+            }, 800);
+        }
+    </script>
+</body>
+</html>
